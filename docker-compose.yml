@@ -1,0 +1,157 @@
+version: "3.9"
+
+# ─── AgiEmprestV2 — Full Stack ──────────────────────────────────────────────
+# Run from the docker-compose/ directory:
+#   docker compose up --build
+#
+# Services exposed:
+#   loan-service          → http://localhost:8080
+#   credit-analysis       → http://localhost:8081
+#   contract-service      → http://localhost:8082
+#   notification-service  → http://localhost:8083
+#   Camunda Cockpit       → http://localhost:8082/camunda  (admin/admin)
+#   Kafka UI              → http://localhost:9000
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ─── Infrastructure ────────────────────────────────────────────────────────
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: agiemprest-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: agiemprest-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:29092", "--list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: agiemprest-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "9000:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: agiemprest-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    container_name: agiemprest-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: agiemprestv2
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ─── Microservices ─────────────────────────────────────────────────────────
+
+  credit-analysis-service:
+    build:
+      context: credit-analysis-service
+      dockerfile: credit-analysis-service/Dockerfile
+    container_name: agiemprest-credit-analysis
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+
+  loan-service:
+    build:
+      context: loan-service
+      dockerfile: loan-service/Dockerfile
+    container_name: agiemprest-loan
+    ports:
+      - "8080:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      credit-analysis-service:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      CREDIT_ANALYSIS_URL: http://credit-analysis-service:8081
+
+  contract-service:
+    build:
+      context: contract-service
+      dockerfile: contract-service/Dockerfile
+    container_name: agiemprest-contract
+    ports:
+      - "8082:8082"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8082
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MONGODB_URI: mongodb://mongodb:27017/agiemprestv2
+
+  notification-service:
+    build:
+      context: notification-service
+      dockerfile: notification-service/Dockerfile
+    container_name: agiemprest-notification
+    ports:
+      - "8083:8083"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8083
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+
+volumes:
+  mongodb_data:

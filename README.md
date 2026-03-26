@@ -172,7 +172,6 @@ agiEmprestV2/
 ## Como Subir
 
 ```bash
-cd agiEmprestV2/docker-compose
 docker compose up --build
 ```
 
