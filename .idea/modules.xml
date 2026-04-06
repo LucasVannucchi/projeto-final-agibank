@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/agiEmprestV2.iml" filepath="$PROJECT_DIR$/.idea/agiEmprestV2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/credit-analysis-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/credit-analysis-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loan-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/loan-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/notification-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/notification-service.main.iml" />
     </modules>
   </component>
 </project>

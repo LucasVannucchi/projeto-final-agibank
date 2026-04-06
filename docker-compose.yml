@@ -94,7 +94,7 @@ services:
   credit-analysis-service:
     build:
       context: credit-analysis-service
-      dockerfile: credit-analysis-service/Dockerfile
+      dockerfile: Dockerfile
     container_name: agiemprest-credit-analysis
     ports:
       - "8081:8081"
@@ -104,7 +104,7 @@ services:
   loan-service:
     build:
       context: loan-service
-      dockerfile: loan-service/Dockerfile
+      dockerfile: Dockerfile
     container_name: agiemprest-loan
     ports:
       - "8080:8080"
@@ -125,7 +125,7 @@ services:
   contract-service:
     build:
       context: contract-service
-      dockerfile: contract-service/Dockerfile
+      dockerfile: Dockerfile
     container_name: agiemprest-contract
     ports:
       - "8082:8082"
@@ -142,7 +142,7 @@ services:
   notification-service:
     build:
       context: notification-service
-      dockerfile: notification-service/Dockerfile
+      dockerfile: Dockerfile
     container_name: agiemprest-notification
     ports:
       - "8083:8083"
