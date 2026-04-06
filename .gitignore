@@ -12,6 +12,9 @@ build/
 # Logs
 *.log
 
+# Database
+*.mv.db
+
 # OS
 .DS_Store
 Thumbs.db
